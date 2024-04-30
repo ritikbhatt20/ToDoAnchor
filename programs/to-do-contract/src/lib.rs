@@ -19,6 +19,30 @@ pub mod todo {
 
         Ok(())
     }
+
+    pub fn add_todo(ctx: Context<AddTodo>, _content: String) -> Result<()> {
+        let todo_account = &mut ctx.accounts.todo_account;
+        let user_profile = &mut ctx.accounts.user_profile;
+
+        todo_account.content = _content;
+        todo_account.authority = ctx.accounts.authority.key();
+        todo_account.idx = user_profile.last_todo;
+        todo_account.marked = false;
+
+        user_profile.last_todo = user_profile.last_todo
+        .checked_add(1)
+        .unwrap();
+
+        user_profile.todo_count = user_profile.todo_count
+        .checked_add(1)
+        .unwrap();
+
+        Ok(())
+    }
+
+    pub fn mark_todo(ctx: Context<AddTodo>, todo_idx: u8) -> Result<()> {
+        
+    }
 }
 
 #[derive(Accounts)]
@@ -35,6 +59,32 @@ pub struct InitializeUser<'info> {
         space = 8 + std::mem::size_of::<UserProfile>(),
     )]
     pub user_profile: Box<Account<'info, UserProfile>>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction()]
+pub struct AddTodo<'info> {
+    #[account(
+        mut,
+        seeds = [USER_TAG, authority.key().as_ref()],
+        bump,
+        has_one = authority,
+    )]
+    pub user_profile: Box<Account<'info, UserProfile>>,
+
+    #[account(
+        init,
+        seeds = [TODO_TAG, authority.key().as_ref(), &[user_profile.last_todo as u8].as_ref()],
+        bump,
+        payer = authority,
+        space = 8 + std::mem::size_of::<ToDoAccount>(),
+    )]
+    pub todo_account: Box<Account<'info, ToDoAccount>>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
 
     pub system_program: Program<'info, System>,
 }
