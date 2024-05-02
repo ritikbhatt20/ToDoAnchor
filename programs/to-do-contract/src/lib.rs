@@ -51,7 +51,15 @@ pub mod todo {
     }
 
     pub fn remove_todo(ctx: Context<RemoveTodo>, todo_idx: u8) -> Result<()> {
-        
+        let user_profile = &mut ctx.accounts.user_profile;
+
+        user_profile.todo_count = user_profile.todo_count
+        .checked_sub(1)
+        .unwrap();
+
+        //Todo PDA is closed with the use of close in struct
+
+        Ok(())
     }
 }
 
@@ -112,7 +120,6 @@ pub struct MarkTodo<'info> {
 
     #[account(
         mut,
-        close = authority,
         seeds = [TODO_TAG, authority.key().as_ref(), &[todo_idx].as_ref()],
         bump,
         has_one = authority,
@@ -135,4 +142,18 @@ pub struct RemoveTodo<'info> {
         has_one = authority,
     )]
     pub user_profile: Box<Account<'info, UserProfile>>,
+
+    #[account(
+        mut,
+        close = authority,
+        seeds = [TODO_TAG, authority.key().as_ref(), &[todo_idx].as_ref()],
+        bump,
+        has_one = authority,
+    )]
+    pub todo_account: Box<Account<'info, ToDoAccount>>,
+
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    pub system_program: Program<'info, System>,
 }
